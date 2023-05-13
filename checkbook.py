@@ -4,13 +4,10 @@ from curses.ascii import isdigit
 
 # Functions to animate user interface
 # -----------------------------------------------------------------
-# Get input from user
-def get_user_input():
-    return input("What would you like to do?\n")
 
 # Print four options for the user
 def main_menu():
-    print(f"\n1) view current balance \n2)record a debit (withdraw) \n3) record a credit (deposit) \n4) exit\n")
+    print(f"\n1) View current balance \n2) Record a debit (withdraw) \n3) Record a credit (deposit) \n4) Exit\n")
 
 # Propt the user to chose between the opetion
 def invalid_input_propt():
@@ -18,7 +15,40 @@ def invalid_input_propt():
 
 # Exit program
 def user_exit():
-    return
+    return print("\nThank you for visiting, have a great day!\n")
+
+# Check validity of user input
+def user_interface():
+    '''
+    --> Ask user input and check validity of the input
+    '''
+    while True:
+        main_menu()
+        user_input = input("What would you like to do?\n")
+        if not user_input.isdigit(): # When user enters letters
+            continue
+        else:
+            if int(user_input) > 4:
+                invalid_input_propt() # # User input not in range 4
+                continue
+            return int(user_input)
+            
+# Check conitinuation of in transactions
+def continue_transaction_propt():
+    '''
+    user_input -> used only to verify if interface shold continue
+    return -> boolean is returned
+    '''
+
+    while True:
+        user_input = input("\nWould you like to continue? (yes or no)\n")
+        if not user_input.isalpha(): # When user enters numbers
+            continue
+        else:
+            if user_input not in ["yes","y","no","n"]:
+                continue
+            return True if user_input in ["yes","y"] else False
+
 
 # Functions to retreive data from checkbook
 # -----------------------------------------------------------------
@@ -56,83 +86,114 @@ def view_curr_balance(balance_file_name) -> str:
         curr_balance = float(balance[-1].replace('\n', ""))
         return curr_balance 
 
-# Substract funds from balance
-def user_withdraw(balance_file_name, withdraw_amount) -> "str, float":
+# deposit and withdraw funds from balance
+def user_deposit_withdraw(balance_file_name, user_amount) -> "str, float":
     '''
     balance_file_name -> string representing the csv file to be found
-    deposit_amount -> orinal cheeckbook balance - user input amount
+    user_amount -> orinal cheeckbook balance (+/-) user input amount
     balance_file -> iniciate append sequence in the csv file
     '''
     balance_file = csv.writer(open(balance_file_name, 'a'), dialect='excel')
-    balance_file.writerow([withdraw_amount])
+    balance_file.writerow([user_amount])
 
-# Add funds to balance
-def user_deposit(balance_file_name, deposit_amount) -> 'str, float':
+# validate mount to degits for transactions 
+def validate_user_input_amount(trans_type) -> str:
     '''
-    balance_file_name -> string representing the csv file to be found
-    deposit_amount -> user input amount + orinal cheeckbook balance
-    balance_file -> iniciate append sequence in the csv file
+    trans_type -> type of transction the user is trying to do
+    user_input -> maount user transacting
     '''
-    balance_file = csv.writer(open(balance_file_name, 'a'), dialect='excel')
-    balance_file.writerow([deposit_amount])
-
-
-# Checkbook file will start here
-# -----------------------------------------------------------------
-if __name__ == "__main__":
-
-    print("\n~~~ Welcome to your terminal checkbook! ~~~\n")
-
-    # Make initial check of user input
     while True:
-        main_menu()
-        user_input = get_user_input()
+        user_input = input(f"\nEnter {trans_type} amount: $")
         if not user_input.isdigit(): # When user enters letters
             continue
-        else:
-            if int(user_input) > 4:
-                invalid_input_propt() # # User input not in range 4
+        return float(user_input)
+
+# Check if user had enough funds
+def withdraw_validattion(prev_balance) -> "float":
+    '''
+    user_amount -> input amount from user
+    prev_amount -> current user balance
+    return -> new current amount
+    '''
+    while True:
+        user_amount = validate_user_input_amount("withdraw")
+        if user_amount > prev_balance:
+            print(f"You  withdraw amount is greater than the current balance...\nTry a different amount!")
+            continue
+        return prev_balance - user_amount # withdraw_amount
+
+
+# Checkbook file will start to run here
+# -----------------------------------------------------------------
+if __name__ == "__main__":
+    print("\n~~~ Welcome to your terminal checkbook! ~~~\n")
+
+    while True:
+
+        # Make initial check of user input
+        user_input = user_interface()
+
+        # csv file to be user for user balance
+        balance_file_name = "user_balance_file.csv"
+
+        ## Conduct user operations
+        if user_input == 1:
+            curr_balance = view_curr_balance(balance_file_name)
+            print(f"Current user balance: ${curr_balance}")
+
+            # chek for continuation of interface
+            responce = continue_transaction_propt()
+            if responce:
                 continue
-            user_input = int(user_input)
-            break
+            else:
+                user_exit()
+                break
+                
+        elif user_input == 2:
+            # Get withdraw amount from user and current balance from file
+            prev_balance = view_curr_balance(balance_file_name)
+            withdraw_amount = withdraw_validattion(prev_balance)
 
-    # csv file to be user for user balance
-    balance_file_name = "user_balance_file.csv"
-
-    ## Conduct user operations
-    if user_input == 1:
-        curr_balance = view_curr_balance(balance_file_name)
-        print(curr_balance)
+            new_balance = user_deposit_withdraw(balance_file_name, withdraw_amount)
+            print(f"${float(user_input)} has been withdrawn from ${prev_balance}")
             
-    elif user_input == 2:
-        # Get deposit amount from user and current balance from file
-        user_input = input("\nEnter deposit amount: ")
-        prev_balance = view_curr_balance(balance_file_name)
+            # Retreiving new balance
+            new_curr_balance = view_curr_balance(balance_file_name)
+            print(f"New acount balance: {new_curr_balance}")
 
-        # Adding user input to existing balance
-        withdraw_amount = prev_balance - float(user_input)
-        new_balance = user_deposit(balance_file_name, withdraw_amount)
-        print(f"${float(user_input)} has been withdrawn from {prev_balance}")
-        
-        # Retreiving new balance
-        new_curr_balance = view_curr_balance(balance_file_name)
-        print(f"New acount balance: {new_curr_balance}")
+            # chek for continuation of interface
+            responce = continue_transaction_propt()
+            if responce:
+                continue
+            else:
+                user_exit()
+                break
 
-    elif user_input == 3:
-        # Get deposit amount from user and current balance from file
-        user_input = input("\nEnter deposit amount: ")
-        prev_balance = view_curr_balance(balance_file_name)
+        elif user_input == 3:
+            # Get deposit amount from user and current balance from file
+            user_input = validate_user_input_amount("deposit")
+            prev_balance = view_curr_balance(balance_file_name)
 
-        # Adding user input to existing balance
-        deposit_amount = float(user_input) + prev_balance
-        new_balance = user_deposit(balance_file_name, deposit_amount)
-        print(f"${float(user_input)} has been added to {prev_balance}")
-        
-        # Retreiving new balance
-        new_curr_balance = view_curr_balance(balance_file_name)
-        print(f"New acount balance: {new_curr_balance}")
-    else:
-        print("Thank you for visiting, have a great day!")
+            # Adding user input to existing balance
+            deposit_amount = float(user_input) + prev_balance
+            new_balance = user_deposit_withdraw(balance_file_name, deposit_amount)
+            print(f"${float(user_input)} has been added to ${prev_balance}")
+            
+            # Retreiving new balance
+            new_curr_balance = view_curr_balance(balance_file_name)
+            print(f"New acount balance: {new_curr_balance}")
+
+            # chek for continuation of interface
+            responce = continue_transaction_propt()
+            if responce:
+                continue
+            else:
+                user_exit()
+                break
+
+        elif user_input == 4:
+            user_exit()
+            break
         
 
         
