@@ -1,4 +1,5 @@
 import os
+import csv
 from curses.ascii import isdigit
 
 # Functions to animate user interface
@@ -15,33 +16,60 @@ def main_menu():
 def invalid_input_propt():
     print("Please enter a valid input! \n-->Enter a number between 1 and 4\n")
 
+# Exit program
+def user_exit():
+    return
+
 # Functions to retreive data from checkbook
 # -----------------------------------------------------------------
-def check_file_exists(balance_file_name) -> "string":
+# Check existance of file
+def check_file_exists(balance_file_name) -> str:
     '''
-    Will create file if file don't exist
+    balance_file_name -> string representing the csv file to be found
+    --> Will create file if file don't exist
     '''
     if os.path.exists(balance_file_name):
+        # Open the existing file and retreive the balance
         with open(balance_file_name, "r") as balance_file:
             balance_file_lines = balance_file.readlines()
             return balance_file_lines
     else:
-        # creating a new file
+        # creating a new file with a cell holding 0
         print(f"File {balance_file_name} not found... \nCreating file...")
-        with open(balance_file_name, "w") as balance_file:
-            balance_file.write("0")
-            print(f"File {balance_file_name} has been created!")
+        balance_file = csv.writer(open(balance_file_name, "w"), dialect='excel')
+        balance_file.writerow([0])
+        return f"File {balance_file_name} has been created!"
 
-def view_curr_balance():
-    return
+# Show current balance
+def view_curr_balance(balance_file_name) -> str:
+    '''
+    balance_file_name -> string representing the csv file to be found
+    balance -> iniciate balance file
+    curr_balance -> balance is returned as integer after replacing \\n
+    '''
+    balance = check_file_exists(balance_file_name) # retreive file
 
-def user_withdraw():
-    return
+    # check current balance and report to user
+    if len(balance) == 1:
+        print("Your current balance is $0.00")
+    else:
+        curr_balance = float(balance[-1].replace('\n', ""))
+        return curr_balance 
 
-def user_deposit():
-    return
-def user_exit():
-    return
+# Substract funds from balance
+def user_withdraw(balance_file_name) -> str:
+    pass
+
+# Add funds to balance
+def user_deposit(balance_file_name, deposit_amount) -> 'str, float':
+    '''
+    balance_file_name -> string representing the csv file to be found
+    deposit_amount -> user input amount + orinal cheeckbook balance
+    balance_file -> iniciate append sequence in the csv file
+    '''
+    balance_file = csv.writer(open(balance_file_name, 'a'), dialect='excel')
+    balance_file.writerow([deposit_amount])
+
 
 # Checkbook file will start here
 # -----------------------------------------------------------------
@@ -62,21 +90,27 @@ if __name__ == "__main__":
             user_input = int(user_input)
             break
 
-    balance_file_name = "user_balance_file.txt"
+    balance_file_name = "user_balance_file.csv"
     if user_input == 1:
-        balance = check_file_exists(balance_file_name)
-        print(balance)
-
-        # check current balance and report to user
-        # if len(balance) == 0:
-        #     print("Your current balance is $0.00")
-        # else:
-        #     print(balance)
+        curr_balance = view_curr_balance(balance_file_name)
+        print(curr_balance)
             
     elif user_input == 2:
         pass
+
     elif user_input == 3:
-        pass
+        # get deposit amount from user and current balance from file
+        user_input = input("\nEnter deposit amount: ")
+        prev_balance = view_curr_balance(balance_file_name)
+
+        # Adding user input to existing balance
+        deposit_amount = float(user_input) + prev_balance
+        new_balance = user_deposit(balance_file_name, deposit_amount)
+        print(f"${float(user_input)} has been added to balance")
+        
+        # Retreiving new balance
+        new_curr_balance = view_curr_balance(balance_file_name)
+        print(f"New acount balance: {new_curr_balance}")
     else:
         print("Thank you for visiting, have a great day!")
         
