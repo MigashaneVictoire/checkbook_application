@@ -4,7 +4,7 @@ from curses.ascii import isdigit
 
 # Functions to animate user interface
 # -----------------------------------------------------------------
-# get input from user
+# Get input from user
 def get_user_input():
     return input("What would you like to do?\n")
 
@@ -34,7 +34,7 @@ def check_file_exists(balance_file_name) -> str:
             balance_file_lines = balance_file.readlines()
             return balance_file_lines
     else:
-        # creating a new file with a cell holding 0
+        # Creating a new file with a cell holding 0
         print(f"File {balance_file_name} not found... \nCreating file...")
         balance_file = csv.writer(open(balance_file_name, "w"), dialect='excel')
         balance_file.writerow([0])
@@ -47,9 +47,9 @@ def view_curr_balance(balance_file_name) -> str:
     balance -> iniciate balance file
     curr_balance -> balance is returned as integer after replacing \\n
     '''
-    balance = check_file_exists(balance_file_name) # retreive file
+    balance = check_file_exists(balance_file_name) # Retreive file
 
-    # check current balance and report to user
+    # Check current balance and report to user
     if len(balance) == 1:
         print("Your current balance is $0.00")
     else:
@@ -57,8 +57,14 @@ def view_curr_balance(balance_file_name) -> str:
         return curr_balance 
 
 # Substract funds from balance
-def user_withdraw(balance_file_name) -> str:
-    pass
+def user_withdraw(balance_file_name, withdraw_amount) -> "str, float":
+    '''
+    balance_file_name -> string representing the csv file to be found
+    deposit_amount -> orinal cheeckbook balance - user input amount
+    balance_file -> iniciate append sequence in the csv file
+    '''
+    balance_file = csv.writer(open(balance_file_name, 'a'), dialect='excel')
+    balance_file.writerow([withdraw_amount])
 
 # Add funds to balance
 def user_deposit(balance_file_name, deposit_amount) -> 'str, float':
@@ -77,36 +83,50 @@ if __name__ == "__main__":
 
     print("\n~~~ Welcome to your terminal checkbook! ~~~\n")
 
-    # make initial check of user input
+    # Make initial check of user input
     while True:
         main_menu()
         user_input = get_user_input()
-        if not user_input.isdigit(): # when user enters letters
+        if not user_input.isdigit(): # When user enters letters
             continue
         else:
             if int(user_input) > 4:
-                invalid_input_propt() # # user input not in range 4
+                invalid_input_propt() # # User input not in range 4
                 continue
             user_input = int(user_input)
             break
 
+    # csv file to be user for user balance
     balance_file_name = "user_balance_file.csv"
+
+    ## Conduct user operations
     if user_input == 1:
         curr_balance = view_curr_balance(balance_file_name)
         print(curr_balance)
             
     elif user_input == 2:
-        pass
+        # Get deposit amount from user and current balance from file
+        user_input = input("\nEnter deposit amount: ")
+        prev_balance = view_curr_balance(balance_file_name)
+
+        # Adding user input to existing balance
+        withdraw_amount = prev_balance - float(user_input)
+        new_balance = user_deposit(balance_file_name, withdraw_amount)
+        print(f"${float(user_input)} has been withdrawn from {prev_balance}")
+        
+        # Retreiving new balance
+        new_curr_balance = view_curr_balance(balance_file_name)
+        print(f"New acount balance: {new_curr_balance}")
 
     elif user_input == 3:
-        # get deposit amount from user and current balance from file
+        # Get deposit amount from user and current balance from file
         user_input = input("\nEnter deposit amount: ")
         prev_balance = view_curr_balance(balance_file_name)
 
         # Adding user input to existing balance
         deposit_amount = float(user_input) + prev_balance
         new_balance = user_deposit(balance_file_name, deposit_amount)
-        print(f"${float(user_input)} has been added to balance")
+        print(f"${float(user_input)} has been added to {prev_balance}")
         
         # Retreiving new balance
         new_curr_balance = view_curr_balance(balance_file_name)
