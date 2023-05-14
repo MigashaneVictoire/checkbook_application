@@ -1,5 +1,6 @@
 import os
 import csv
+from datetime import datetime as dt
 from curses.ascii import isdigit
 
 # Functions to animate user interface
@@ -56,48 +57,58 @@ def continue_transaction_propt():
 def check_file_exists(balance_file_name) -> str:
     '''
     balance_file_name -> string representing the csv file to be found
-    --> Will create file if file don't exist and return a list of all values
+    --> Will create file if file don't exist and return a list of all values at index -1
     '''
     if os.path.exists(balance_file_name):
         # Open the existing file and retreive the balance
         with open(balance_file_name, "r") as balance_file:
             balance_file_lines = balance_file.readlines()
-            return balance_file_lines
+            return balance_file_lines[-1].replace("\n","").split(",") # cleaned list of the last index element
     else:
-        print(f"File {balance_file_name} not found... \nCreating file...")
+        print(f"File {balance_file_name[-1]} not found... \nCreating file...")
+
+        col_names = ['id','Balance', 'Date'] # header row describe the column
+        init_data = ["0","0", dt.now()] # initial value when file created
 
         # Creating a new file with a cell holding 0
         with open(balance_file_name, 'w') as balance_file:
-            balance_file.writelines(["0"])
+            writer = csv.writer(balance_file)
+            writer.writerow(col_names) # Insert column names
+            writer.writerow(init_data) # Insert initial data
 
         # Open the existing file and retreive the balance
         with open(balance_file_name, "r") as balance_file:
             balance_file_lines = balance_file.readlines()
 
             print(f"File {balance_file_name} has been created!")
-            return balance_file_lines  # return a list of elements in created file
+            return balance_file_lines[-1].replace("\n","").split(",")  # return a list of elements in created file
 
 # Show current balance
 def view_curr_balance(balance_file_name) -> str:
     '''
     balance_file_name -> string representing the csv file to be found
-    balance -> iniciate balance file
-    curr_balance -> balance is returned as integer after replacing \\n
+    balanceFile_lastIndex -> iniciate balance return
+    return 3 separate variables belonging to balance file last index elements
+    
     '''
     # Check and report to user the balance
-    balance = check_file_exists(balance_file_name) # Retreive file
-    curr_balance = str(balance[-1]).replace('\n', "")
-    return float(curr_balance)
+    balanceFile_lastIndex = check_file_exists(balance_file_name) # Retreive file
+    return unpack_balance_returns (balanceFile_lastIndex) # -> primary_key, balance_value, transaction_date
 
 # deposit and withdraw funds from balance
-def user_deposit_withdraw(balance_file_name, user_amount) -> "str, float":
+def user_deposit_withdraw(balance_file_name, user_amount, primary_key) -> "str, float, int":
     '''
     balance_file_name -> string representing the csv file to be found
     user_amount -> orinal cheeckbook balance (+/-) user input amount
     balance_file -> iniciate append sequence in the csv file
     '''
-    balance_file = csv.writer(open(balance_file_name, 'a'), dialect='excel')
-    balance_file.writerow([user_amount])
+    dnew_data = [str(primary_key + 1), str(user_amount), str(dt.now())] # Data to be added to balance sheet
+
+    # append new data to the balance csv file
+    with open(balance_file_name, 'a') as balance_file:
+            writer = csv.writer(balance_file)
+            writer.writerow(dnew_data) # Insert new data
+            balance_file.close()
 
 # validate mount to degits for transactions 
 def validate_user_input_amount(trans_type) -> str:
@@ -128,6 +139,17 @@ def withdraw_validattion(prev_balance) -> "float":
 
 # Extra functions for user operations
 # -----------------------------------------------------------------
+# Change datatypes for each value from balance file
+def unpack_balance_returns (balanceFile_lastIndex) -> list:
+
+    primary_key = int(balanceFile_lastIndex[0])
+    balance_value = float(balanceFile_lastIndex[1])
+
+    # String to datetime formate 
+    transaction_date = dt.strptime(balanceFile_lastIndex[2], "%Y-%m-%d %H:%M:%S.%f")
+    
+    return (primary_key, balance_value, transaction_date)
+
 def view_historical_trans():
     return
 def category_assignment():
@@ -154,8 +176,14 @@ if __name__ == "__main__":
 
         ## Conduct user operations
         if user_input == 1:
-            curr_balance = view_curr_balance(balance_file_name)
+
+            primary_key, curr_balance, transaction_date = view_curr_balance(balance_file_name)
+
             print(f"Current user balance: ${curr_balance}")
+            print(f"Transaction made on {dt.date(transaction_date)} at {dt.time(transaction_date)}")
+
+            # Becuase viewing balance is another transaction, I add it to the balnce sheet
+
 
             # chek for continuation of interface
             responce = continue_transaction_propt()
@@ -167,14 +195,14 @@ if __name__ == "__main__":
                 
         elif user_input == 2:
             # Get withdraw amount from user and current balance from file
-            prev_balance = view_curr_balance(balance_file_name)
+            primary_key, prev_balance, transaction_date = view_curr_balance(balance_file_name)
             user_amount, withdraw_amount = withdraw_validattion(prev_balance)
 
-            new_balance = user_deposit_withdraw(balance_file_name, withdraw_amount)
+            user_deposit_withdraw(balance_file_name, withdraw_amount, primary_key)
             print(f"${float(user_amount)} has been withdrawn from ${prev_balance}")
             
             # Retreiving new balance
-            new_curr_balance = view_curr_balance(balance_file_name)
+            primary_key, new_curr_balance, transaction_date = view_curr_balance(balance_file_name)
             print(f"New acount balance: {new_curr_balance}")
 
             # chek for continuation of interface
