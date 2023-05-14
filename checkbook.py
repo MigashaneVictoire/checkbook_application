@@ -56,7 +56,7 @@ def continue_transaction_propt():
 def check_file_exists(balance_file_name) -> str:
     '''
     balance_file_name -> string representing the csv file to be found
-    --> Will create file if file don't exist
+    --> Will create file if file don't exist and return a list of all values
     '''
     if os.path.exists(balance_file_name):
         # Open the existing file and retreive the balance
@@ -64,11 +64,18 @@ def check_file_exists(balance_file_name) -> str:
             balance_file_lines = balance_file.readlines()
             return balance_file_lines
     else:
-        # Creating a new file with a cell holding 0
         print(f"File {balance_file_name} not found... \nCreating file...")
-        balance_file = csv.writer(open(balance_file_name, "w"), dialect='excel')
-        balance_file.writerow([0])
-        return f"File {balance_file_name} has been created!"
+
+        # Creating a new file with a cell holding 0
+        with open(balance_file_name, 'w') as balance_file:
+            balance_file.writelines(["0"])
+
+        # Open the existing file and retreive the balance
+        with open(balance_file_name, "r") as balance_file:
+            balance_file_lines = balance_file.readlines()
+
+            print(f"File {balance_file_name} has been created!")
+            return balance_file_lines  # return a list of elements in created file
 
 # Show current balance
 def view_curr_balance(balance_file_name) -> str:
@@ -77,14 +84,10 @@ def view_curr_balance(balance_file_name) -> str:
     balance -> iniciate balance file
     curr_balance -> balance is returned as integer after replacing \\n
     '''
+    # Check and report to user the balance
     balance = check_file_exists(balance_file_name) # Retreive file
-
-    # Check current balance and report to user
-    if len(balance) == 1:
-        print("Your current balance is $0.00")
-    else:
-        curr_balance = float(balance[-1].replace('\n', ""))
-        return curr_balance 
+    curr_balance = str(balance[-1]).replace('\n', "")
+    return float(curr_balance)
 
 # deposit and withdraw funds from balance
 def user_deposit_withdraw(balance_file_name, user_amount) -> "str, float":
@@ -117,11 +120,11 @@ def withdraw_validattion(prev_balance) -> "float":
     '''
     while True:
         user_amount = validate_user_input_amount("withdraw")
+        print(user_amount, prev_balance)
         if user_amount > prev_balance:
             print(f"You  withdraw amount is greater than the current balance...\nTry a different amount!")
             continue
-        return prev_balance - user_amount # withdraw_amount
-
+        return (user_amount, prev_balance - user_amount) # withdraw_amount
 
 # Checkbook file will start to run here
 # -----------------------------------------------------------------
@@ -152,10 +155,10 @@ if __name__ == "__main__":
         elif user_input == 2:
             # Get withdraw amount from user and current balance from file
             prev_balance = view_curr_balance(balance_file_name)
-            withdraw_amount = withdraw_validattion(prev_balance)
+            user_amount, withdraw_amount = withdraw_validattion(prev_balance)
 
             new_balance = user_deposit_withdraw(balance_file_name, withdraw_amount)
-            print(f"${float(user_input)} has been withdrawn from ${prev_balance}")
+            print(f"${float(user_amount)} has been withdrawn from ${prev_balance}")
             
             # Retreiving new balance
             new_curr_balance = view_curr_balance(balance_file_name)
