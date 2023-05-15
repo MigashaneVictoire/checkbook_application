@@ -67,8 +67,8 @@ def check_file_exists(balance_file_name) -> str:
     else:
         print(f"File {balance_file_name[-1]} not found... \nCreating file...")
 
-        col_names = ['id','Balance', 'Date'] # header row describe the column
-        init_data = ["0","0", dt.now()] # initial value when file created
+        col_names = ['id','Balance', 'TransType','DateTime'] # header row describe the column
+        init_data = ["0","0", "Creation",dt.now()] # initial value when file created
 
         # Creating a new file with a cell holding 0
         with open(balance_file_name, 'w') as balance_file:
@@ -96,13 +96,13 @@ def view_curr_balance(balance_file_name) -> str:
     return unpack_balance_returns (balanceFile_lastIndex) # -> primary_key, balance_value, transaction_date
 
 # deposit and withdraw funds from balance
-def user_deposit_withdraw(balance_file_name, user_amount, primary_key) -> "str, float, int":
+def user_deposit_withdraw(balance_file_name, user_amount, primary_key, trans_type) -> "str, float, int":
     '''
     balance_file_name -> string representing the csv file to be found
     user_amount -> orinal cheeckbook balance (+/-) user input amount
     balance_file -> iniciate append sequence in the csv file
     '''
-    dnew_data = [str(primary_key + 1), str(user_amount), str(dt.now())] # Data to be added to balance sheet
+    dnew_data = [str(primary_key + 1), str(user_amount), str(trans_type),str(dt.now())] # Data to be added to balance sheet
 
     # append new data to the balance csv file
     with open(balance_file_name, 'a') as balance_file:
@@ -131,7 +131,6 @@ def withdraw_validattion(prev_balance) -> "float":
     '''
     while True:
         user_amount = validate_user_input_amount("withdraw")
-        print(user_amount, prev_balance)
         if user_amount > prev_balance:
             print(f"You  withdraw amount is greater than the current balance...\nTry a different amount!")
             continue
@@ -144,11 +143,12 @@ def unpack_balance_returns (balanceFile_lastIndex) -> list:
 
     primary_key = int(balanceFile_lastIndex[0])
     balance_value = float(balanceFile_lastIndex[1])
+    trans_type = str(balanceFile_lastIndex[2])
 
     # String to datetime formate 
-    transaction_date = dt.strptime(balanceFile_lastIndex[2], "%Y-%m-%d %H:%M:%S.%f")
+    transaction_date = dt.strptime(balanceFile_lastIndex[3], "%Y-%m-%d %H:%M:%S.%f")
     
-    return (primary_key, balance_value, transaction_date)
+    return (primary_key, balance_value, trans_type, transaction_date)
 
 def view_historical_trans():
     return
@@ -176,14 +176,14 @@ if __name__ == "__main__":
 
         ## Conduct user operations
         if user_input == 1:
-
-            primary_key, curr_balance, transaction_date = view_curr_balance(balance_file_name)
+            transaction_type_toAdd = "View"
+            primary_key, curr_balance, trans_type,transaction_date = view_curr_balance(balance_file_name)
 
             print(f"Current user balance: ${curr_balance}")
             print(f"Transaction made on {dt.date(transaction_date)} at {dt.time(transaction_date)}")
 
             # Becuase viewing balance is another transaction, I add it to the balnce sheet
-
+            user_deposit_withdraw(balance_file_name, curr_balance, primary_key, transaction_type_toAdd)
 
             # chek for continuation of interface
             responce = continue_transaction_propt()
@@ -194,16 +194,20 @@ if __name__ == "__main__":
                 break
                 
         elif user_input == 2:
+            transaction_type_toAdd = "Withdraw"
+
             # Get withdraw amount from user and current balance from file
-            primary_key, prev_balance, transaction_date = view_curr_balance(balance_file_name)
+            primary_key, prev_balance, trans_type,transaction_date = view_curr_balance(balance_file_name)
             user_amount, withdraw_amount = withdraw_validattion(prev_balance)
 
-            user_deposit_withdraw(balance_file_name, withdraw_amount, primary_key)
-            print(f"${float(user_amount)} has been withdrawn from ${prev_balance}")
+            # Adding user input to existing balance
+            user_deposit_withdraw(balance_file_name, withdraw_amount, primary_key, transaction_type_toAdd)
+            print(f"\n${float(user_amount)} has been withdrawn from ${prev_balance}")
             
             # Retreiving new balance
-            primary_key, new_curr_balance, transaction_date = view_curr_balance(balance_file_name)
-            print(f"New acount balance: {new_curr_balance}")
+            primary_key, new_curr_balance, trans_type, transaction_date = view_curr_balance(balance_file_name)
+            print(f"New acount balance: ${new_curr_balance}")
+            print(f"Transaction make on {dt.date(transaction_date)} at {dt.time(transaction_date)}")
 
             # chek for continuation of interface
             responce = continue_transaction_propt()
@@ -214,18 +218,21 @@ if __name__ == "__main__":
                 break
 
         elif user_input == 3:
+            transaction_type_toAdd = "Deposit"
+
             # Get deposit amount from user and current balance from file
             user_input = validate_user_input_amount("deposit")
-            prev_balance = view_curr_balance(balance_file_name)
+            primary_key, prev_balance, trans_type, transaction_date = view_curr_balance(balance_file_name)
 
             # Adding user input to existing balance
-            deposit_amount = float(user_input) + prev_balance
-            new_balance = user_deposit_withdraw(balance_file_name, deposit_amount)
-            print(f"${float(user_input)} has been added to ${prev_balance}")
+            deposit_amount = user_input + prev_balance
+            user_deposit_withdraw(balance_file_name, deposit_amount, primary_key, transaction_type_toAdd)
+            print(f"\n${float(user_input)} has been added to ${prev_balance}")
             
             # Retreiving new balance
-            new_curr_balance = view_curr_balance(balance_file_name)
-            print(f"New acount balance: {new_curr_balance}")
+            primary_key, new_curr_balance, trans_type, transaction_date = view_curr_balance(balance_file_name)
+            print(f"New acount balance: ${new_curr_balance}")
+            print(f"Transaction make on {dt.date(transaction_date)} at {dt.time(transaction_date)}")
 
             # chek for continuation of interface
             responce = continue_transaction_propt()
