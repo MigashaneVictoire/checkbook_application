@@ -106,10 +106,19 @@ def validate_user_input_amount(trans_type) -> str:
     user_input -> maount user transacting
     '''
     while True:
-        user_input = input(f"\nEnter {trans_type} amount: $")
-        if not user_input.isdigit(): # When user enters letters
+
+        # Check if the user entered a valid number (non negative)
+        try:
+            user_input = float(input(f"\nEnter {trans_type} amount: $"))
+            if user_input < 0:
+                print("\nInvalid amount... Try again!")
+                continue
+
+        except:
+            print("\nInvalid amount... Try again!")
             continue
-        return float(user_input)
+
+        return round(user_input, 2)
 
 # Check if user had enough funds
 def withdraw_validattion(prev_balance) -> "float":
